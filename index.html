@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NetShort Stream Web</title>
+    <title>NetShort Stream Web - Fixed</title>
     <style>
         * {
             margin: 0;
@@ -43,6 +43,12 @@
             border-radius: 25px;
             font-size: 16px;
             min-width: 300px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            backdrop-filter: blur(10px);
+        }
+        .search-input::placeholder {
+            color: rgba(255,255,255,0.7);
         }
         .btn {
             padding: 15px 25px;
@@ -103,6 +109,7 @@
             overflow: hidden;
             transition: all 0.3s ease;
             backdrop-filter: blur(10px);
+            cursor: pointer;
         }
         .card:hover {
             transform: translateY(-10px);
@@ -112,6 +119,7 @@
             width: 100%;
             height: 200px;
             object-fit: cover;
+            background: #333;
         }
         .card-content {
             padding: 20px;
@@ -120,6 +128,7 @@
             font-size: 1.2em;
             margin-bottom: 10px;
             font-weight: bold;
+            line-height: 1.3;
         }
         .card-episode {
             color: #4ecdc4;
@@ -129,6 +138,24 @@
             text-align: center;
             padding: 50px;
             font-size: 1.2em;
+        }
+        .error {
+            text-align: center;
+            padding: 50px;
+            color: #ff6b6b;
+            background: rgba(255,107,107,0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        .debug {
+            background: rgba(0,0,0,0.5);
+            padding: 15px;
+            border-radius: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            margin: 10px 0;
+            max-height: 200px;
+            overflow-y: auto;
         }
         .player-container {
             position: fixed;
@@ -184,10 +211,12 @@
             cursor: pointer;
             border-radius: 5px;
             transition: background 0.3s ease;
+            border: 1px solid transparent;
         }
         .episode-item:hover,
         .episode-item.active {
             background: rgba(255,255,255,0.3);
+            border-color: #4ecdc4;
         }
         @media (max-width: 768px) {
             .grid {
@@ -206,14 +235,15 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎬 NetShort Stream</h1>
+            <h1>🎬 NetShort Stream - Fixed</h1>
             <p>Tonton drama pendek favoritmu</p>
         </div>
 
         <div class="search-container">
-            <input type="text" class="search-input" id="searchInput" placeholder="Cari drama...">
+            <input type="text" class="search-input" id="searchInput" placeholder="Cari drama (contoh: CEO, Love, Drama)...">
             <button class="btn" onclick="searchDramas()">🔍 Cari</button>
             <button class="btn btn-secondary" onclick="loadTheaters()">🏛️ Theater</button>
+            <button class="btn btn-secondary" onclick="loadForYou()">📺 For You</button>
         </div>
 
         <div class="tabs">
@@ -226,18 +256,21 @@
         <div id="foryou" class="content active">
             <div class="loading" id="foryouLoading">Memuat konten For You...</div>
             <div class="grid" id="foryouGrid"></div>
+            <div id="foryouDebug" class="debug" style="display:none;"></div>
         </div>
 
         <!-- Theater Content -->
         <div id="theaters" class="content">
             <div class="loading" id="theatersLoading">Memuat Theater...</div>
             <div class="grid" id="theatersGrid"></div>
+            <div id="theatersDebug" class="debug" style="display:none;"></div>
         </div>
 
         <!-- Search Content -->
         <div id="search" class="content">
             <div class="loading" id="searchLoading">Hasil pencarian akan muncul di sini...</div>
             <div class="grid" id="searchGrid"></div>
+            <div id="searchDebug" class="debug" style="display:none;"></div>
         </div>
     </div>
 
@@ -254,9 +287,9 @@
 
     <script>
         let currentPage = 1;
-        let isLoading = false;
         let currentEpisodes = [];
         let activeTab = 'foryou';
+        let DEBUG = true; // Set to false to hide debug info
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
@@ -267,17 +300,35 @@
         function switchTab(tab) {
             activeTab = tab;
             
-            // Update tab buttons
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             event.target.classList.add('active');
             
-            // Show content
             document.querySelectorAll('.content').forEach(content => content.classList.remove('active'));
             document.getElementById(tab).classList.add('active');
-            
-            // Load content if needed
-            if (tab === 'theaters' && document.getElementById('theatersGrid').children.length === 0) {
-                loadTheaters();
+        }
+
+        // Generic API fetch with debug
+        async function fetchAPI(url, name) {
+            try {
+                console.log(`Fetching ${name}: ${url}`);
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                if (DEBUG) console.log(`${name} Response:`, data);
+                return data;
+            } catch (error) {
+                console.error(`Error ${name}:`, error);
+                throw error;
             }
         }
 
@@ -285,20 +336,24 @@
         async function loadForYou(page = 1) {
             const grid = document.getElementById('foryouGrid');
             const loading = document.getElementById('foryouLoading');
+            const debug = document.getElementById('foryouDebug');
             
             try {
-                loading.style.display = 'block';
+                loading.textContent = 'Memuat For You...';
+                loading.className = 'loading';
                 grid.innerHTML = '';
                 
-                const response = await fetch(`https://netshort.sansekai.my.id/api/netshort/foryou?page=${page}`);
-                const data = await response.json();
+                const data = await fetchAPI(`https://netshort.sansekai.my.id/api/netshort/foryou?page=${page}`, 'ForYou');
+                displayDramas(data, grid, 'foryou');
                 
-                displayDramas(data, grid);
+                if (DEBUG) {
+                    debug.textContent = JSON.stringify(data, null, 2);
+                    debug.style.display = 'block';
+                }
             } catch (error) {
-                console.error('Error loading For You:', error);
-                loading.innerHTML = 'Gagal memuat konten. Coba lagi.';
-            } finally {
-                loading.style.display = 'none';
+                console.error('ForYou error:', error);
+                loading.className = 'error';
+                loading.innerHTML = `❌ Gagal memuat For You<br><small>${error.message}</small>`;
             }
         }
 
@@ -306,127 +361,225 @@
         async function loadTheaters() {
             const grid = document.getElementById('theatersGrid');
             const loading = document.getElementById('theatersLoading');
+            const debug = document.getElementById('theatersDebug');
             
             try {
-                loading.style.display = 'block';
+                loading.textContent = 'Memuat Theater...';
+                loading.className = 'loading';
                 grid.innerHTML = '';
                 
-                const response = await fetch('https://netshort.sansekai.my.id/api/netshort/theaters');
-                const data = await response.json();
+                const data = await fetchAPI('https://netshort.sansekai.my.id/api/netshort/theaters', 'Theaters');
+                displayDramas(data, grid, 'theaters');
                 
-                displayDramas(data, grid);
+                if (DEBUG) {
+                    debug.textContent = JSON.stringify(data, null, 2);
+                    debug.style.display = 'block';
+                }
             } catch (error) {
-                console.error('Error loading theaters:', error);
-                loading.innerHTML = 'Gagal memuat Theater. Coba lagi.';
-            } finally {
-                loading.style.display = 'none';
+                console.error('Theaters error:', error);
+                loading.className = 'error';
+                loading.innerHTML = `❌ Gagal memuat Theater<br><small>${error.message}</small>`;
             }
         }
 
         // Search Dramas
         async function searchDramas() {
             const query = document.getElementById('searchInput').value.trim();
-            if (!query) return;
+            if (!query) {
+                alert('Masukkan kata kunci pencarian!');
+                return;
+            }
             
             const grid = document.getElementById('searchGrid');
             const loading = document.getElementById('searchLoading');
+            const debug = document.getElementById('searchDebug');
             
             try {
-                loading.style.display = 'block';
+                loading.textContent = `Mencari "${query}"...`;
+                loading.className = 'loading';
                 grid.innerHTML = '';
                 
-                const response = await fetch(`https://netshort.sansekai.my.id/api/netshort/search?query=${encodeURIComponent(query)}`);
-                const data = await response.json();
+                const data = await fetchAPI(`https://netshort.sansekai.my.id/api/netshort/search?query=${encodeURIComponent(query)}`, 'Search');
+                displayDramas(data, grid, 'search');
                 
-                displayDramas(data, grid);
+                if (DEBUG) {
+                    debug.textContent = JSON.stringify(data, null, 2);
+                    debug.style.display = 'block';
+                }
             } catch (error) {
-                console.error('Error searching:', error);
-                loading.innerHTML = 'Gagal mencari. Coba lagi.';
-            } finally {
-                loading.style.display = 'none';
+                console.error('Search error:', error);
+                loading.className = 'error';
+                loading.innerHTML = `❌ Pencarian gagal<br><small>${error.message}</small>`;
             }
         }
 
-        // Display dramas
-        function displayDramas(data, grid) {
-            if (!data || !Array.isArray(data.data)) return;
+        // Enhanced display with multiple possible field names
+        function displayDramas(data, grid, section) {
+            let dramas = [];
             
-            data.data.forEach(drama => {
-                const card = document.createElement('div');
-                card.className = 'card';
-                card.innerHTML = `
-                    <img src="${drama.coverVerticalUrl || drama.coverHorizontalUrl || 'https://via.placeholder.com/300x200?text=No+Image'}" 
-                         alt="${drama.title || 'Drama'}" 
-                         onerror="this.src='https://via.placeholder.com/300x200?text=No+Image'">
-                    <div class="card-content">
-                        <div class="card-title">${drama.title || 'Untitled'}</div>
-                        ${drama.episodeCount ? `<div class="card-episode">Episode: ${drama.episodeCount}</div>` : ''}
-                    </div>
-                `;
-                card.onclick = () => loadEpisodes(drama.shortPlayId || drama.id);
+            // Try different possible data structures
+            if (data.data && Array.isArray(data.data)) {
+                dramas = data.data;
+            } else if (Array.isArray(data)) {
+                dramas = data;
+            } else if (data.list && Array.isArray(data.list)) {
+                dramas = data.list;
+            } else if (data.items && Array.isArray(data.items)) {
+                dramas = data.items;
+            } else if (data.results && Array.isArray(data.results)) {
+                dramas = data.results;
+            }
+            
+            console.log(`Found ${dramas.length} dramas in ${section}`);
+            
+            if (dramas.length === 0) {
+                grid.innerHTML = '<div class="error" style="grid-column: 1/-1;">Tidak ada hasil ditemukan</div>';
+                return;
+            }
+            
+            dramas.slice(0, 20).forEach((drama, index) => {
+                const card = createDramaCard(drama, index);
                 grid.appendChild(card);
             });
         }
 
+        // Create drama card with all possible field mappings
+        function createDramaCard(drama, index) {
+            const card = document.createElement('div');
+            card.className = 'card';
+            
+            // Multiple possible image fields
+            const imageFields = [
+                'coverVerticalUrl', 'coverHorizontalUrl', 'coverUrl', 'poster', 'thumbnail', 
+                'verticalPosterUrl', 'horizontalPosterUrl', 'image', 'cover', 'posterUrl'
+            ];
+            let posterUrl = 'https://via.placeholder.com/300x200/333/fff?text=No+Image';
+            for (let field of imageFields) {
+                if (drama[field]) {
+                    posterUrl = drama[field];
+                    break;
+                }
+            }
+            
+            // Multiple possible title fields
+            const titleFields = ['title', 'name', 'shortPlayName', 'dramaTitle', 'playName'];
+            let title = 'Untitled Drama';
+            for (let field of titleFields) {
+                if (drama[field]) {
+                    title = drama[field];
+                    break;
+                }
+            }
+            
+            // Multiple possible ID fields
+            const idFields = ['shortPlayId', 'id', 'playId', 'dramaId'];
+            let dramaId = drama.id || index;
+            for (let field of idFields) {
+                if (drama[field]) {
+                    dramaId = drama[field];
+                    break;
+                }
+            }
+            
+            card.innerHTML = `
+                <img src="${posterUrl}" 
+                     alt="${title}" 
+                     onerror="this.src='https://via.placeholder.com/300x200/333/fff?text=No+Image'; this.onerror=null;">
+                <div class="card-content">
+                    <div class="card-title">${title.substring(0, 50)}${title.length > 50 ? '...' : ''}</div>
+                    <div class="card-episode">ID: ${dramaId}</div>
+                </div>
+            `;
+            
+            card.onclick = () => loadEpisodes(dramaId, title);
+            return card;
+        }
+
         // Load all episodes
-        async function loadEpisodes(shortPlayId) {
+        async function loadEpisodes(shortPlayId, title) {
             try {
-                const response = await fetch(`https://netshort.sansekai.my.id/api/netshort/allepisode?shortPlayId=${shortPlayId}`);
-                currentEpisodes = await response.json();
-                playEpisode(0); // Play first episode
+                console.log(`Loading episodes for: ${shortPlayId}`);
+                const response = await fetchAPI(
+                    `https://netshort.sansekai.my.id/api/netshort/allepisode?shortPlayId=${shortPlayId}`, 
+                    'Episodes'
+                );
+                currentEpisodes = response;
+                playEpisode(0, title);
             } catch (error) {
                 console.error('Error loading episodes:', error);
-                alert('Gagal memuat episode');
+                alert(`Gagal memuat episode untuk ${title}\n${error.message}`);
             }
         }
 
         // Play episode
-        function playEpisode(index) {
-            if (!currentEpisodes || !currentEpisodes.data || index >= currentEpisodes.data.length) return;
+        function playEpisode(index, dramaTitle = '') {
+            if (!currentEpisodes || !currentEpisodes.data) {
+                alert('Tidak ada data episode');
+                return;
+            }
             
-            const episode = currentEpisodes.data[index];
+            const episodes = currentEpisodes.data || currentEpisodes;
+            if (index >= episodes.length) return;
+            
+            const episode = episodes[index];
             const videoPlayer = document.getElementById('videoPlayer');
             const playerContainer = document.getElementById('playerContainer');
             const episodeList = document.getElementById('episodeList');
             
-            // Update video source
-            videoPlayer.src = episode.hls || episode.videoUrl || episode.playUrl || '';
+            // Try multiple video URL fields
+            const videoFields = ['hls', 'videoUrl', 'playUrl', 'streamUrl', 'url', 'source'];
+            let videoUrl = '';
+            for (let field of videoFields) {
+                if (episode[field]) {
+                    videoUrl = episode[field];
+                    break;
+                }
+            }
+            
+            if (!videoUrl) {
+                alert('Video URL tidak ditemukan');
+                return;
+            }
+            
+            console.log(`Playing episode ${index + 1}: ${videoUrl}`);
+            videoPlayer.src = videoUrl;
             videoPlayer.load();
+            videoPlayer.play();
             
             // Update episode list
-            episodeList.innerHTML = '';
-            currentEpisodes.data.forEach((ep, i) => {
+            episodeList.innerHTML = `<div style="font-weight:bold;margin-bottom:10px;">${dramaTitle}</div>`;
+            episodes.slice(0, 50).forEach((ep, i) => {
+                const title = ep.title || ep.name || `Episode ${i + 1}`;
                 const epItem = document.createElement('div');
                 epItem.className = `episode-item ${i === index ? 'active' : ''}`;
-                epItem.textContent = `Ep ${i + 1}: ${ep.title || `Episode ${i + 1}`}`;
-                epItem.onclick = () => playEpisode(i);
+                epItem.textContent = `Ep ${i + 1}: ${title.substring(0, 30)}${title.length > 30 ? '...' : ''}`;
+                epItem.onclick = () => playEpisode(i, dramaTitle);
                 episodeList.appendChild(epItem);
             });
             
             playerContainer.style.display = 'flex';
+            document.querySelector('.episode-list').scrollTop = 0;
         }
 
         // Close player
         function closePlayer() {
             document.getElementById('playerContainer').style.display = 'none';
             document.getElementById('videoPlayer').pause();
+            document.getElementById('videoPlayer').src = '';
         }
 
         // Enter to search
         document.getElementById('searchInput').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 searchDramas();
+                switchTab('search');
             }
         });
 
-        // Load more on scroll (For You)
-        window.addEventListener('scroll', function() {
-            if (activeTab !== 'foryou') return;
-            
-            if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 1000 && !isLoading) {
-                currentPage++;
-                loadForYou(currentPage);
-            }
+        // Button events
+        document.querySelector('.btn-secondary[onclick="loadForYou()"]').addEventListener('click', () => {
+            switchTab('foryou');
+            loadForYou();
         });
     </script>
 </body>
