@@ -3,584 +3,313 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NetShort Stream Web - Fixed</title>
+    <title>NetShort Stream - DEBUG VERSION</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            color: white;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
+            font-family: monospace;
+            background: #1a1a1a;
+            color: #00ff00;
             padding: 20px;
+            line-height: 1.6;
         }
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header { 
+            background: #000; 
+            padding: 20px; 
+            border: 2px solid #00ff00; 
+            margin-bottom: 20px;
+            border-radius: 10px;
         }
-        .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-        .search-container {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
-        }
-        .search-input {
-            flex: 1;
-            padding: 15px;
-            border: none;
-            border-radius: 25px;
-            font-size: 16px;
-            min-width: 300px;
-            background: rgba(255,255,255,0.2);
-            color: white;
-            backdrop-filter: blur(10px);
-        }
-        .search-input::placeholder {
-            color: rgba(255,255,255,0.7);
+        .section {
+            background: #222;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            border-left: 5px solid #00ff00;
         }
         .btn {
-            padding: 15px 25px;
+            background: #00ff00;
+            color: #000;
             border: none;
-            border-radius: 25px;
-            background: #ff6b6b;
-            color: white;
-            font-size: 16px;
+            padding: 12px 24px;
+            margin: 5px;
+            border-radius: 5px;
             cursor: pointer;
-            transition: all 0.3s ease;
-            min-width: 120px;
+            font-weight: bold;
         }
-        .btn:hover {
-            background: #ff5252;
-            transform: translateY(-2px);
-        }
-        .btn-secondary {
-            background: #4ecdc4;
-        }
-        .btn-secondary:hover {
-            background: #45b7aa;
-        }
-        .tabs {
-            display: flex;
-            background: rgba(255,255,255,0.1);
-            border-radius: 20px;
-            padding: 5px;
-            margin-bottom: 30px;
-        }
-        .tab-btn {
-            flex: 1;
+        .btn:hover { background: #00cc00; }
+        .btn-danger { background: #ff4444; color: white; }
+        .btn-danger:hover { background: #cc3333; }
+        .response {
+            background: #000;
+            border: 1px solid #333;
             padding: 15px;
-            border: none;
-            background: transparent;
-            color: white;
-            border-radius: 15px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        .tab-btn.active {
-            background: white;
-            color: #333;
-        }
-        .content {
-            display: none;
-        }
-        .content.active {
-            display: block;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
         }
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
         }
         .card {
-            background: rgba(255,255,255,0.15);
-            border-radius: 20px;
-            overflow: hidden;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
+            background: #333;
+            border: 1px solid #00ff00;
+            padding: 15px;
+            border-radius: 8px;
             cursor: pointer;
+            transition: all 0.3s;
         }
-        .card:hover {
-            transform: translateY(-10px);
-            background: rgba(255,255,255,0.25);
-        }
+        .card:hover { background: #444; transform: scale(1.02); }
         .card img {
             width: 100%;
-            height: 200px;
+            height: 150px;
             object-fit: cover;
-            background: #333;
-        }
-        .card-content {
-            padding: 20px;
-        }
-        .card-title {
-            font-size: 1.2em;
-            margin-bottom: 10px;
-            font-weight: bold;
-            line-height: 1.3;
-        }
-        .card-episode {
-            color: #4ecdc4;
-            font-size: 0.9em;
-        }
-        .loading {
-            text-align: center;
-            padding: 50px;
-            font-size: 1.2em;
-        }
-        .error {
-            text-align: center;
-            padding: 50px;
-            color: #ff6b6b;
-            background: rgba(255,107,107,0.1);
-            border-radius: 15px;
-            backdrop-filter: blur(10px);
-        }
-        .debug {
-            background: rgba(0,0,0,0.5);
-            padding: 15px;
-            border-radius: 10px;
-            font-family: monospace;
-            font-size: 12px;
-            margin: 10px 0;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-        .player-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.9);
-            z-index: 1000;
-            display: none;
-            justify-content: center;
-            align-items: center;
-        }
-        .player-wrapper {
-            position: relative;
-            width: 90%;
-            height: 90%;
-            max-width: 1200px;
-            max-height: 700px;
-        }
-        .video-player {
-            width: 100%;
-            height: 100%;
-            background: #000;
-        }
-        .close-player {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(255,255,255,0.2);
-            border: none;
-            color: white;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            font-size: 24px;
-            cursor: pointer;
-            z-index: 10;
-        }
-        .episode-list {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            right: 20px;
-            background: rgba(0,0,0,0.8);
-            padding: 20px;
-            border-radius: 10px;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-        .episode-item {
-            padding: 10px;
-            cursor: pointer;
             border-radius: 5px;
-            transition: background 0.3s ease;
-            border: 1px solid transparent;
+            margin-bottom: 10px;
         }
-        .episode-item:hover,
-        .episode-item.active {
-            background: rgba(255,255,255,0.3);
-            border-color: #4ecdc4;
-        }
-        @media (max-width: 768px) {
-            .grid {
-                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-                gap: 15px;
-            }
-            .search-container {
-                flex-direction: column;
-            }
-            .search-input {
-                min-width: auto;
-            }
-        }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: rgba(0,255,0,0.2); }
+        .error { background: rgba(255,68,68,0.2); }
+        .loading { background: rgba(255,165,0,0.2); }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎬 NetShort Stream - Fixed</h1>
-            <p>Tonton drama pendek favoritmu</p>
+            <h1>🔧 NETSHORT API DEBUGGER</h1>
+            <p>Klik tombol di bawah untuk test setiap endpoint. Lihat response lengkap!</p>
         </div>
 
-        <div class="search-container">
-            <input type="text" class="search-input" id="searchInput" placeholder="Cari drama (contoh: CEO, Love, Drama)...">
-            <button class="btn" onclick="searchDramas()">🔍 Cari</button>
-            <button class="btn btn-secondary" onclick="loadTheaters()">🏛️ Theater</button>
-            <button class="btn btn-secondary" onclick="loadForYou()">📺 For You</button>
+        <!-- THEATERS TEST -->
+        <div class="section">
+            <h3>🎭 1. THEATERS</h3>
+            <button class="btn" onclick="testTheaters()">TEST THEATERS</button>
+            <button class="btn btn-danger" onclick="clearResponse('theaters')">CLEAR</button>
+            <div id="theatersStatus" class="status"></div>
+            <div id="theatersResponse" class="response"></div>
+            <div id="theatersGrid" class="grid"></div>
         </div>
 
-        <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('foryou')">📺 For You</button>
-            <button class="tab-btn" onclick="switchTab('theaters')">🏛️ Theater</button>
-            <button class="tab-btn" onclick="switchTab('search')">🔍 Pencarian</button>
+        <!-- FOR YOU TEST -->
+        <div class="section">
+            <h3>📺 2. FOR YOU (Page 1)</h3>
+            <input type="number" id="pageInput" value="1" min="1" style="padding:8px;margin:5px;width:80px;">
+            <button class="btn" onclick="testForYou()">TEST FOR YOU</button>
+            <button class="btn btn-danger" onclick="clearResponse('foryou')">CLEAR</button>
+            <div id="foryouStatus" class="status"></div>
+            <div id="foryouResponse" class="response"></div>
+            <div id="foryouGrid" class="grid"></div>
         </div>
 
-        <!-- For You Content -->
-        <div id="foryou" class="content active">
-            <div class="loading" id="foryouLoading">Memuat konten For You...</div>
-            <div class="grid" id="foryouGrid"></div>
-            <div id="foryouDebug" class="debug" style="display:none;"></div>
+        <!-- SEARCH TEST -->
+        <div class="section">
+            <h3>🔍 3. SEARCH</h3>
+            <input type="text" id="searchInput" placeholder="Kata kunci (contoh: CEO, Love)" style="padding:12px;margin:5px;width:300px;">
+            <button class="btn" onclick="testSearch()">TEST SEARCH</button>
+            <button class="btn btn-danger" onclick="clearResponse('search')">CLEAR</button>
+            <div id="searchStatus" class="status"></div>
+            <div id="searchResponse" class="response"></div>
+            <div id="searchGrid" class="grid"></div>
         </div>
 
-        <!-- Theater Content -->
-        <div id="theaters" class="content">
-            <div class="loading" id="theatersLoading">Memuat Theater...</div>
-            <div class="grid" id="theatersGrid"></div>
-            <div id="theatersDebug" class="debug" style="display:none;"></div>
+        <!-- EPISODE TEST -->
+        <div class="section">
+            <h3>📺 4. EPISODES</h3>
+            <input type="text" id="episodeIdInput" placeholder="Masukkan shortPlayId dari card di atas" style="padding:12px;margin:5px;width:400px;">
+            <button class="btn" onclick="testEpisodes()">TEST EPISODES</button>
+            <button class="btn btn-danger" onclick="clearResponse('episodes')">CLEAR</button>
+            <div id="episodesStatus" class="status"></div>
+            <div id="episodesResponse" class="response"></div>
         </div>
 
-        <!-- Search Content -->
-        <div id="search" class="content">
-            <div class="loading" id="searchLoading">Hasil pencarian akan muncul di sini...</div>
-            <div class="grid" id="searchGrid"></div>
-            <div id="searchDebug" class="debug" style="display:none;"></div>
-        </div>
-    </div>
-
-    <!-- Video Player Modal -->
-    <div class="player-container" id="playerContainer">
-        <div class="player-wrapper">
-            <button class="close-player" onclick="closePlayer()">×</button>
-            <video class="video-player" id="videoPlayer" controls autoplay>
-                Browser Anda tidak mendukung video HTML5.
-            </video>
-            <div class="episode-list" id="episodeList"></div>
+        <!-- CORS PROXY TEST -->
+        <div class="section">
+            <h3>🌐 CORS PROXY TEST</h3>
+            <button class="btn" onclick="testCORSProxy()">TEST CORS PROXY</button>
+            <div id="corsStatus" class="status"></div>
+            <div id="corsResponse" class="response"></div>
         </div>
     </div>
 
     <script>
-        let currentPage = 1;
-        let currentEpisodes = [];
-        let activeTab = 'foryou';
-        let DEBUG = true; // Set to false to hide debug info
-
-        // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            loadForYou();
-        });
-
-        // Tab switching
-        function switchTab(tab) {
-            activeTab = tab;
-            
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-            
-            document.querySelectorAll('.content').forEach(content => content.classList.remove('active'));
-            document.getElementById(tab).classList.add('active');
+        // Test semua endpoint satu per satu
+        async function testAll() {
+            await testTheaters();
+            await new Promise(r=>setTimeout(r,1000));
+            await testForYou();
+            await new Promise(r=>setTimeout(r,1000));
+            testSearch();
         }
 
-        // Generic API fetch with debug
-        async function fetchAPI(url, name) {
-            try {
-                console.log(`Fetching ${name}: ${url}`);
-                const response = await fetch(url, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json',
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                    }
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                
-                const data = await response.json();
-                if (DEBUG) console.log(`${name} Response:`, data);
-                return data;
-            } catch (error) {
-                console.error(`Error ${name}:`, error);
-                throw error;
-            }
-        }
-
-        // Load For You
-        async function loadForYou(page = 1) {
-            const grid = document.getElementById('foryouGrid');
-            const loading = document.getElementById('foryouLoading');
-            const debug = document.getElementById('foryouDebug');
-            
-            try {
-                loading.textContent = 'Memuat For You...';
-                loading.className = 'loading';
-                grid.innerHTML = '';
-                
-                const data = await fetchAPI(`https://netshort.sansekai.my.id/api/netshort/foryou?page=${page}`, 'ForYou');
-                displayDramas(data, grid, 'foryou');
-                
-                if (DEBUG) {
-                    debug.textContent = JSON.stringify(data, null, 2);
-                    debug.style.display = 'block';
-                }
-            } catch (error) {
-                console.error('ForYou error:', error);
-                loading.className = 'error';
-                loading.innerHTML = `❌ Gagal memuat For You<br><small>${error.message}</small>`;
-            }
-        }
-
-        // Load Theaters
-        async function loadTheaters() {
+        // Test Theaters
+        async function testTheaters() {
+            const status = document.getElementById('theatersStatus');
+            const responseDiv = document.getElementById('theatersResponse');
             const grid = document.getElementById('theatersGrid');
-            const loading = document.getElementById('theatersLoading');
-            const debug = document.getElementById('theatersDebug');
+            
+            status.className = 'status loading';
+            status.innerHTML = '⏳ Testing Theaters...';
             
             try {
-                loading.textContent = 'Memuat Theater...';
-                loading.className = 'loading';
-                grid.innerHTML = '';
+                // Coba langsung dulu
+                let data = await fetchAPI('https://netshort.sansekai.my.id/api/netshort/theaters', 'DIRECT');
                 
-                const data = await fetchAPI('https://netshort.sansekai.my.id/api/netshort/theaters', 'Theaters');
-                displayDramas(data, grid, 'theaters');
-                
-                if (DEBUG) {
-                    debug.textContent = JSON.stringify(data, null, 2);
-                    debug.style.display = 'block';
+                // Kalau gagal, coba CORS proxy
+                if (!data) {
+                    console.log('Direct failed, trying CORS proxy...');
+                    data = await fetchAPI('https://api.allorigins.win/get?url=' + encodeURIComponent('https://netshort.sansekai.my.id/api/netshort/theaters'), 'CORS');
+                    if (data.contents) data = JSON.parse(data.contents);
                 }
+                
+                showResponse('theaters', data);
+                displayDramas(data, grid, 'theaters');
+                status.className = 'status success';
+                status.innerHTML = '✅ Theaters OK! (' + (data.data?.length || data.length || 0) + ' items)';
+                
             } catch (error) {
-                console.error('Theaters error:', error);
-                loading.className = 'error';
-                loading.innerHTML = `❌ Gagal memuat Theater<br><small>${error.message}</small>`;
+                status.className = 'status error';
+                status.innerHTML = '❌ Theaters ERROR: ' + error.message;
+                responseDiv.innerHTML += '\n\n--- ERROR ---\n' + error.message;
             }
         }
 
-        // Search Dramas
-        async function searchDramas() {
+        // Test For You
+        async function testForYou() {
+            const page = document.getElementById('pageInput').value || 1;
+            const status = document.getElementById('foryouStatus');
+            const responseDiv = document.getElementById('foryouResponse');
+            const grid = document.getElementById('foryouGrid');
+            
+            status.className = 'status loading';
+            status.innerHTML = `⏳ Testing For You (Page ${page})...`;
+            
+            try {
+                let data = await fetchAPI(`https://netshort.sansekai.my.id/api/netshort/foryou?page=${page}`, 'DIRECT');
+                
+                if (!data) {
+                    data = await fetchAPI('https://api.allorigins.win/get?url=' + encodeURIComponent(`https://netshort.sansekai.my.id/api/netshort/foryou?page=${page}`), 'CORS');
+                    if (data.contents) data = JSON.parse(data.contents);
+                }
+                
+                showResponse('foryou', data);
+                displayDramas(data, grid, 'foryou');
+                status.className = 'status success';
+                status.innerHTML = '✅ For You OK! (' + (data.data?.length || data.length || 0) + ' items)';
+                
+            } catch (error) {
+                status.className = 'status error';
+                status.innerHTML = '❌ For You ERROR: ' + error.message;
+            }
+        }
+
+        // Test Search
+        async function testSearch() {
             const query = document.getElementById('searchInput').value.trim();
             if (!query) {
                 alert('Masukkan kata kunci pencarian!');
                 return;
             }
             
+            const status = document.getElementById('searchStatus');
+            const responseDiv = document.getElementById('searchResponse');
             const grid = document.getElementById('searchGrid');
-            const loading = document.getElementById('searchLoading');
-            const debug = document.getElementById('searchDebug');
+            
+            status.className = 'status loading';
+            status.innerHTML = `⏳ Searching "${query}"...`;
             
             try {
-                loading.textContent = `Mencari "${query}"...`;
-                loading.className = 'loading';
-                grid.innerHTML = '';
+                let data = await fetchAPI(`https://netshort.sansekai.my.id/api/netshort/search?query=${encodeURIComponent(query)}`, 'DIRECT');
                 
-                const data = await fetchAPI(`https://netshort.sansekai.my.id/api/netshort/search?query=${encodeURIComponent(query)}`, 'Search');
+                if (!data) {
+                    data = await fetchAPI('https://api.allorigins.win/get?url=' + encodeURIComponent(`https://netshort.sansekai.my.id/api/netshort/search?query=${encodeURIComponent(query)}`), 'CORS');
+                    if (data.contents) data = JSON.parse(data.contents);
+                }
+                
+                showResponse('search', data);
                 displayDramas(data, grid, 'search');
+                status.className = 'status success';
+                status.innerHTML = '✅ Search OK! (' + (data.data?.length || data.length || 0) + ' items)';
                 
-                if (DEBUG) {
-                    debug.textContent = JSON.stringify(data, null, 2);
-                    debug.style.display = 'block';
-                }
             } catch (error) {
-                console.error('Search error:', error);
-                loading.className = 'error';
-                loading.innerHTML = `❌ Pencarian gagal<br><small>${error.message}</small>`;
+                status.className = 'status error';
+                status.innerHTML = '❌ Search ERROR: ' + error.message;
             }
         }
 
-        // Enhanced display with multiple possible field names
-        function displayDramas(data, grid, section) {
-            let dramas = [];
-            
-            // Try different possible data structures
-            if (data.data && Array.isArray(data.data)) {
-                dramas = data.data;
-            } else if (Array.isArray(data)) {
-                dramas = data;
-            } else if (data.list && Array.isArray(data.list)) {
-                dramas = data.list;
-            } else if (data.items && Array.isArray(data.items)) {
-                dramas = data.items;
-            } else if (data.results && Array.isArray(data.results)) {
-                dramas = data.results;
-            }
-            
-            console.log(`Found ${dramas.length} dramas in ${section}`);
-            
-            if (dramas.length === 0) {
-                grid.innerHTML = '<div class="error" style="grid-column: 1/-1;">Tidak ada hasil ditemukan</div>';
+        // Test Episodes
+        async function testEpisodes() {
+            const shortPlayId = document.getElementById('episodeIdInput').value.trim();
+            if (!shortPlayId) {
+                alert('Masukkan shortPlayId!');
                 return;
             }
             
-            dramas.slice(0, 20).forEach((drama, index) => {
-                const card = createDramaCard(drama, index);
-                grid.appendChild(card);
-            });
-        }
-
-        // Create drama card with all possible field mappings
-        function createDramaCard(drama, index) {
-            const card = document.createElement('div');
-            card.className = 'card';
+            const status = document.getElementById('episodesStatus');
+            status.className = 'status loading';
+            status.innerHTML = `⏳ Loading episodes for ID: ${shortPlayId}...`;
             
-            // Multiple possible image fields
-            const imageFields = [
-                'coverVerticalUrl', 'coverHorizontalUrl', 'coverUrl', 'poster', 'thumbnail', 
-                'verticalPosterUrl', 'horizontalPosterUrl', 'image', 'cover', 'posterUrl'
-            ];
-            let posterUrl = 'https://via.placeholder.com/300x200/333/fff?text=No+Image';
-            for (let field of imageFields) {
-                if (drama[field]) {
-                    posterUrl = drama[field];
-                    break;
-                }
-            }
-            
-            // Multiple possible title fields
-            const titleFields = ['title', 'name', 'shortPlayName', 'dramaTitle', 'playName'];
-            let title = 'Untitled Drama';
-            for (let field of titleFields) {
-                if (drama[field]) {
-                    title = drama[field];
-                    break;
-                }
-            }
-            
-            // Multiple possible ID fields
-            const idFields = ['shortPlayId', 'id', 'playId', 'dramaId'];
-            let dramaId = drama.id || index;
-            for (let field of idFields) {
-                if (drama[field]) {
-                    dramaId = drama[field];
-                    break;
-                }
-            }
-            
-            card.innerHTML = `
-                <img src="${posterUrl}" 
-                     alt="${title}" 
-                     onerror="this.src='https://via.placeholder.com/300x200/333/fff?text=No+Image'; this.onerror=null;">
-                <div class="card-content">
-                    <div class="card-title">${title.substring(0, 50)}${title.length > 50 ? '...' : ''}</div>
-                    <div class="card-episode">ID: ${dramaId}</div>
-                </div>
-            `;
-            
-            card.onclick = () => loadEpisodes(dramaId, title);
-            return card;
-        }
-
-        // Load all episodes
-        async function loadEpisodes(shortPlayId, title) {
             try {
-                console.log(`Loading episodes for: ${shortPlayId}`);
-                const response = await fetchAPI(
-                    `https://netshort.sansekai.my.id/api/netshort/allepisode?shortPlayId=${shortPlayId}`, 
-                    'Episodes'
-                );
-                currentEpisodes = response;
-                playEpisode(0, title);
-            } catch (error) {
-                console.error('Error loading episodes:', error);
-                alert(`Gagal memuat episode untuk ${title}\n${error.message}`);
-            }
-        }
-
-        // Play episode
-        function playEpisode(index, dramaTitle = '') {
-            if (!currentEpisodes || !currentEpisodes.data) {
-                alert('Tidak ada data episode');
-                return;
-            }
-            
-            const episodes = currentEpisodes.data || currentEpisodes;
-            if (index >= episodes.length) return;
-            
-            const episode = episodes[index];
-            const videoPlayer = document.getElementById('videoPlayer');
-            const playerContainer = document.getElementById('playerContainer');
-            const episodeList = document.getElementById('episodeList');
-            
-            // Try multiple video URL fields
-            const videoFields = ['hls', 'videoUrl', 'playUrl', 'streamUrl', 'url', 'source'];
-            let videoUrl = '';
-            for (let field of videoFields) {
-                if (episode[field]) {
-                    videoUrl = episode[field];
-                    break;
+                let data = await fetchAPI(`https://netshort.sansekai.my.id/api/netshort/allepisode?shortPlayId=${shortPlayId}`, 'DIRECT');
+                
+                if (!data) {
+                    data = await fetchAPI('https://api.allorigins.win/get?url=' + encodeURIComponent(`https://netshort.sansekai.my.id/api/netshort/allepisode?shortPlayId=${shortPlayId}`), 'CORS');
+                    if (data.contents) data = JSON.parse(data.contents);
                 }
+                
+                showResponse('episodes', data);
+                status.className = 'status success';
+                status.innerHTML = '✅ Episodes OK! (' + (data.data?.length || data.length || 0) + ' episodes)';
+                
+            } catch (error) {
+                status.className = 'status error';
+                status.innerHTML = '❌ Episodes ERROR: ' + error.message;
             }
-            
-            if (!videoUrl) {
-                alert('Video URL tidak ditemukan');
-                return;
-            }
-            
-            console.log(`Playing episode ${index + 1}: ${videoUrl}`);
-            videoPlayer.src = videoUrl;
-            videoPlayer.load();
-            videoPlayer.play();
-            
-            // Update episode list
-            episodeList.innerHTML = `<div style="font-weight:bold;margin-bottom:10px;">${dramaTitle}</div>`;
-            episodes.slice(0, 50).forEach((ep, i) => {
-                const title = ep.title || ep.name || `Episode ${i + 1}`;
-                const epItem = document.createElement('div');
-                epItem.className = `episode-item ${i === index ? 'active' : ''}`;
-                epItem.textContent = `Ep ${i + 1}: ${title.substring(0, 30)}${title.length > 30 ? '...' : ''}`;
-                epItem.onclick = () => playEpisode(i, dramaTitle);
-                episodeList.appendChild(epItem);
-            });
-            
-            playerContainer.style.display = 'flex';
-            document.querySelector('.episode-list').scrollTop = 0;
         }
 
-        // Close player
-        function closePlayer() {
-            document.getElementById('playerContainer').style.display = 'none';
-            document.getElementById('videoPlayer').pause();
-            document.getElementById('videoPlayer').src = '';
+        // Universal API fetch
+        async function fetchAPI(url, method = 'DIRECT') {
+            try {
+                const controller = new AbortController();
+                setTimeout(() => controller.abort(), 10000);
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    signal: controller.signal,
+                    headers: {
+                        'Accept': 'application/json',
+                        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36'
+                    }
+                });
+                
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                return await response.json();
+            } catch (error) {
+                if (method === 'DIRECT') {
+                    console.log('Direct fetch failed, will try CORS proxy');
+                    return null;
+                }
+                throw error;
+            }
         }
 
-        // Enter to search
-        document.getElementById('searchInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                searchDramas();
-                switchTab('search');
-            }
-        });
+        // Show response
+        function showResponse(type, data) {
+            const div = document.getElementById(type + 'Response');
+            div.textContent = JSON.stringify(data, null, 2);
+            div.scrollTop = 0;
+        }
 
-        // Button events
-        document.querySelector('.btn-secondary[onclick="loadForYou()"]').addEventListener('click', () => {
-            switchTab('foryou');
-            loadForYou();
-        });
-    </script>
-</body>
-</html>
+        // Clear response
+        function clearResponse(type) {
+            document.getElementById(type + 'Response').textContent = '';
+            document.getElementById(type + 'Status').innerHTML = '';
+            document.getElementById(type +
